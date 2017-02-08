@@ -48,7 +48,7 @@
 		       :parameters `(("id" . ,(omegle-client-id client))
 				     ,,@(mapcar (lambda (s) `(cons ,(symbol-name s) ,s)) args)))
        (if (= status 200)
-	   (if (and (stringp body) (string= "win" body))
+	   (if (stringp body)
 	       (identity t)
 	       (parse (octets-to-string body :external-format :utf-8)))))))
 
