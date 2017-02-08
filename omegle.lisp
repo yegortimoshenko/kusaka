@@ -23,13 +23,13 @@
 (defun omegle-connect (&optional (topics '()))
   (let ((randid (random-string *omegle-randid-alphabet* 8))
 	(server (sample *omegle-servers*)))
-    (multiple-value-bind (octets status)
-      (http-request (concatenate 'string "http://" server "/start")
-		    :user-agent :explorer
-		    :parameters `(("randid" . ,randid)
-				  ,(if topics `("topics" . ,(to-json topics)))))
+    (multiple-value-bind (body status)
+	(http-request (concatenate 'string "http://" server "/start")
+		      :user-agent :explorer
+		      :parameters `(("randid" . ,randid)
+				    ,(if topics `("topics" . ,(to-json topics)))))
       (if (= status 200)
-	  (make-omegle-client :id (unquote (octets-to-string octets))
+	  (make-omegle-client :id (unquote (octets-to-string body))
 			      :server server)))))
 
 (defparameter *omegle-actions*
@@ -42,10 +42,11 @@
 (defmacro omegle-defaction (name path &optional args)
   `(defun ,name (client ,@args)
      (multiple-value-bind (body status)
-       (http-request (concatenate 'string "http://" (omegle-client-server client) ,path)
-		     :method :post :user-agent :explorer
-		     :parameters `(("id" . ,(omegle-client-id client))
-				   ,,@(mapcar (lambda (s) `(cons ,(symbol-name s) ,s)) args)))
+	 (http-request (concatenate 'string "http://" (omegle-client-server client) ,path)
+		       :method :post
+		       :user-agent :explorer
+		       :parameters `(("id" . ,(omegle-client-id client))
+				     ,,@(mapcar (lambda (s) `(cons ,(symbol-name s) ,s)) args)))
        (if (= status 200)
 	   (if (and (stringp body) (string= "win" body))
 	       (identity t)
