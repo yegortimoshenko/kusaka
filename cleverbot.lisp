@@ -6,7 +6,6 @@
     (ascii-string-to-byte-array s))))
 
 (defparameter *cleverbot-domain* "http://www.cleverbot.com")
-(defparameter *cleverbot-pass* "{pass}")
 
 (defclass cleverbot-client ()
   ((cookie-jar :initform (make-instance 'cookie-jar))
@@ -29,8 +28,7 @@
 	       (vtexts (loop for i to (length log)
 			  for v in log
 			  collect (cons (format nil "vText~d" (+ 2 i)) v)))
-	       (params (append params vtexts
-			 (if (eq *cleverbot-pass* query) `(("Sub" . "Pass")))))
+	       (params (append params vtexts))
 	       (digest (md5 (subseq (url-encode-params params) 9 35)))
 	       (params (append params `(("icognocheck" . ,digest)))))
 	  (http-request (concatenate 'string *cleverbot-domain* "/webservicemin?"
