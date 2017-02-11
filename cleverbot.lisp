@@ -34,8 +34,9 @@
 	       (digest (md5 (subseq (url-encode-params params) 9 35)))
 	       (params (append params `(("icognocheck" . ,digest)))))
 	  (http-request (concatenate 'string *cleverbot-domain* "/webservicemin?"
-			  (url-encode-params `(("uc" . "3210") ("botapi" . ,uuid))))
+			  (url-encode-params `(("uc" . "777") ("botapi" . ,uuid))))
 			:method :post
+			:external-format-out :utf-8
 			:cookie-jar cookie-jar
 			:user-agent :explorer
 			:parameters params
