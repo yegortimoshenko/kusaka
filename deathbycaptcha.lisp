@@ -1,32 +1,26 @@
 (in-package #:kusaka)
 
-(defparameter *deathbycaptcha-endpoint* "http://api.dbcapi.me/api/captcha")
+(defparameter *deathbycaptcha-uri* "http://api.dbcapi.me/api")
 
 (defstruct deathbycaptcha-client username password)
 
-(defun get-alist (key alist)
-  (cdr (assoc key alist :test #'string=)))
+(defun deathbycaptcha-credentials (client)
+  `(("username" . ,(deathbycaptcha-client-username client))
+    ("password" . ,(deathbycaptcha-client-password client))))
 
 (defun deathbycaptcha-submit (client uri)
-  (multiple-value-bind (body)
-      (http-request
-       *deathbycaptcha-endpoint*
-       :method :post
-       :redirect nil
-       :parameters `(("username" . ,(deathbycaptcha-client-username client))
-		     ("password" . ,(deathbycaptcha-client-password client))
-		     ("captchafile" . ,(make-in-memory-input-stream
-				        (http-request uri :user-agent :explorer)))))
-    (get-alist "captcha" (url-decode-params body))))
+  (>> (deathbycaptcha-credentials client)
+      (acons "captchafile" (make-in-memory-input-stream (http-request* uri)))
+      (http-request (concatenate 'string *deathbycaptcha-uri* "/captcha")
+		    :redirect nil :method :post :parameters)
+      (url-decode-params)
+      (get-alist "captcha")))
 
 (defun deathbycaptcha-check (id)
-  (let* ((body (http-request (concatenate 'string *deathbycaptcha-endpoint* "/" id)))
- 	 (text (get-alist "text" (url-decode-params body))))
-    (if (not (string= "" text)) text)))
+  (>> (http-request (format nil "~A/captcha/~d" *deathbycaptcha-uri* id))
+      (url-decode-params)
+      (get-alist "text")))
 
 (defun deathbycaptcha-report (client id)
-  (http-request
-   (concatenate 'string *deathbycaptcha-endpoint "/" id "/report")
-   :method :post
-   :parameters `(("username" . ,(deathbycaptcha-client-username client))
-		 ("password" . ,(deathbycaptcha-client-password client)))))
+  (http-request (format nil "~A/captcha/~d/report" *deathbycaptcha-uri* id)
+		:method :post :parameters (deathbycaptcha-credentials client)))

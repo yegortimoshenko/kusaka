@@ -10,26 +10,20 @@
   (append (char-range #\0 #\9)
 	  (char-range #\A #\Z)))
 
-(defun sample (xs)
-  (nth (random (length xs)) xs))
-
 (defun random-string (alphabet length)
-  (concatenate 'string (loop repeat length collect (sample alphabet))))
-
-(defun unquote (s) (string-trim '(#\") s))
+  (concatenate 'string (loop repeat length collect (random-elt alphabet))))
 
 (defstruct omegle-client id server)
 
-(defun omegle-connect (&optional (topics '()))
+(defun omegle-connect (&optional topics)
   (let ((randid (random-string *omegle-randid-alphabet* 8))
-	(server (sample *omegle-servers*)))
+	(server (random-elt *omegle-servers*)))
     (multiple-value-bind (body status)
-	(http-request (concatenate 'string "http://" server "/start")
-		      :user-agent :explorer
-		      :parameters `(("randid" . ,randid)
-				    ,(if topics `("topics" . ,(to-json topics)))))
+	(http-request* (concatenate 'string "http://" server "/start")
+		       :parameters `(("randid" . ,randid)
+				     ("topics" . ,(to-json (cons randid topics)))))
       (if (= status 200)
-	  (make-omegle-client :id (unquote (octets-to-string body))
+	  (make-omegle-client :id (string-trim '(#\") (octets-to-string body))
 			      :server server)))))
 
 (defparameter *omegle-actions*
@@ -42,11 +36,10 @@
 (defmacro omegle-defaction (name path &optional args)
   `(defun ,name (client ,@args)
      (multiple-value-bind (body status)
-	 (http-request (concatenate 'string "http://" (omegle-client-server client) ,path)
-		       :method :post
-		       :user-agent :explorer
-		       :parameters `(("id" . ,(omegle-client-id client))
-				     ,,@(mapcar (lambda (s) `(cons ,(symbol-name s) ,s)) args)))
+	 (http-request* (concatenate 'string "http://" (omegle-client-server client) ,path)
+		        :method :post
+		        :parameters `(("id" . ,(omegle-client-id client))
+				      ,,@(mapcar (lambda (s) `(cons ,(symbol-name s) ,s)) args)))
        (if (= status 200)
 	   (if (stringp body)
 	       (identity t)
