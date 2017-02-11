@@ -9,7 +9,7 @@
 
 (defclass cleverbot-client ()
   ((cookie-jar :initform (make-instance 'cookie-jar))
-   (log :initform '() :accessor cleverbot-client-log)
+   (log :initform '())
    (session :initform "")
    (uuid :initform (make-v1-uuid))))
 
