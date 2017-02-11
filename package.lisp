@@ -17,4 +17,4 @@
 		 :url-encoder #'(lambda (s e) (url-encode s :encoding e))
 		 :user-agent :explorer))
 
-(defgeneric say (client phrase))
+(defgeneric say (client &optional phrase))

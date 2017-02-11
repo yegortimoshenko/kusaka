@@ -16,7 +16,7 @@
 (defmethod initialize-instance :after ((client cleverbot) &key)
   (http-request *cleverbot-uri* :cookie-jar (slot-value client 'cookie-jar)))
 
-(defmethod say ((client cleverbot) (phrase string))
+(defmethod say ((client cleverbot) &optional (phrase ""))
   (with-slots (cookie-jar log session uuid) client
     (multiple-value-bind (body status headers)
 	(let* ((params `(("stimulus" . ,phrase)

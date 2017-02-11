@@ -4,7 +4,7 @@
   ((state :initform "")
    (token :initarg :token)))
 
-(defmethod say ((client cleverbot-api) (phrase string))
+(defmethod say ((client cleverbot-api) &optional (phrase ""))
   (with-slots (state token) client
     (when-let* ((params `(("cs" . ,state)
 			  ("input" . ,phrase)
