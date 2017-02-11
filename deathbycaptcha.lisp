@@ -24,3 +24,9 @@
 (defun deathbycaptcha-report (client id)
   (http-request (format nil "~A/captcha/~d/report" *deathbycaptcha-uri* id)
 		:method :post :parameters (deathbycaptcha-credentials client)))
+
+(defun deathbycaptcha-balance (client)
+  (>> (http-request (concatenate 'string *deathbycaptcha-uri* "/user")
+		    :method :post :parameters (deathbycaptcha-credentials client))
+      (url-decode-params)
+      (get-alist "balance")))
