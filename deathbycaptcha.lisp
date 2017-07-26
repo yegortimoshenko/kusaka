@@ -1,32 +1,39 @@
-(in-package #:kusaka)
+(in-package #:yegortimoshenko.kusaka/deathbycaptcha)
 
-(defparameter *deathbycaptcha-uri* "http://api.dbcapi.me/api")
+(defparameter *endpoint* "http://api.dbcapi.me/api")
 
-(defstruct deathbycaptcha-client username password)
+(defstruct client username password)
 
-(defun deathbycaptcha-credentials (client)
-  `(("username" . ,(deathbycaptcha-client-username client))
-    ("password" . ,(deathbycaptcha-client-password client))))
+(defun credentials (client)
+  `(("username" . ,(client-username client))
+    ("password" . ,(client-password client))))
 
-(defun deathbycaptcha-submit (client uri)
-  (>> (deathbycaptcha-credentials client)
-      (acons "captchafile" (make-in-memory-input-stream (http-request* uri)))
-      (http-request (concatenate 'string *deathbycaptcha-uri* "/captcha")
-		    :redirect nil :method :post :parameters)
-      (url-decode-params)
+(defun request (client uri &optional params)
+  (quri:url-decode-params
+   (http-request (concatenate 'string *endpoint* uri)
+		 :parameters (append params (if client (credentials client)))
+		 :redirect nil)))
+
+(defun submit (client octets)
+  (>> (request client "/captcha" '(("captchafile" . ,(flexi-streams:make-in-memory-input-stream octets))))
       (get-alist "captcha")))
 
-(defun deathbycaptcha-check (id)
-  (>> (http-request (format nil "~A/captcha/~d" *deathbycaptcha-uri* id))
-      (url-decode-params)
-      (get-alist "text")))
+(defun check (id)
+  (get-alist "text" (request nil id (format nil "/captcha/~d" id))))
 
-(defun deathbycaptcha-report (client id)
-  (http-request (format nil "~A/captcha/~d/report" *deathbycaptcha-uri* id)
-		:method :post :parameters (deathbycaptcha-credentials client)))
+(defun ensure (p &rest args)
+  (if (apply p args)
+      (values-list args)))
 
-(defun deathbycaptcha-balance (client)
-  (>> (http-request (concatenate 'string *deathbycaptcha-uri* "/user")
-		    :method :post :parameters (deathbycaptcha-credentials client))
+(defun check (id)
+  (>> (http-request (format nil "~A/captcha/~d" *uri* id))
       (url-decode-params)
-      (get-alist "balance")))
+      (get-alist "text")
+      (ensure (compose #'not #'emptyp))))
+
+(defun report (client id)
+  (http-request (format nil "~A/captcha/~d/report" *uri* id)
+		:method :post :parameters (credentials client)))
+
+(defun status (client)
+  (request "/user"))

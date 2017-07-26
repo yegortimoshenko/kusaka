@@ -1,49 +1,69 @@
-(defpackage kusaka
-  (:shadow #:http-request #:null #:parse #:traverse #:url-encode)
+(defpackage yegortimoshenko.kusaka/macros
+  (:documentation "Various generic shorthands.")
+  (:export #:>> #:cr #:http-request #:pull)
   (:use #:cl))
 
-(in-package #:kusaka)
+(defpackage yegortimoshenko.kusaka/walk
+  (:export #:traverse)
+  (:use #:cl))
 
-(eval-when (:compile-toplevel :execute :load-toplevel)
-  (defun dependencies (system)
-    (slot-value (asdf:find-system system) 'asdf/component:sideway-dependencies))
-  (mapcar #'use-package (dependencies :kusaka)))
+(defpackage yegortimoshenko.kusaka/bypass.deathbycaptcha
+  (:documentation "Death by CAPTCHA API client.")
+  (:export #:balance #:check #:make-client #:report #:submit)
+  (:use #:yegortimoshenko.kusaka/macros #:cl))
 
-(defmacro >> (&rest forms)
-  (reduce #'(lambda (xs x) (append x (list xs))) forms))
+(defpackage yegortimoshenko.kusaka/omegle
+  (:documentation "Reverse-engineered Omegle client.")
+  (:export #:connect #:make-client #:request)
+  (:use #:yegortimoshenko.kusaka/macros
+	#:alexandria #:cl))
 
-(defmacro defalias (target source)
-  `(setf (fdefinition ',target) #',source))
+(defpackage yegortimoshenko.kusaka/chatbots
+  (:export #:say)
+  (:use #:cl))
 
-(defalias parse-json jonathan:parse)
-(defalias parse-xml plump:parse)
+(defpackage yegortimoshenko.kusaka/chatbots.alice
+  (:documentation "A.L.I.C.E. client (powered by Pandorabots), see http://alice.pandorabots.com")
+  (:export #:client)
+  (:use #:yegortimoshenko.kusaka/chatbots #:cl))
 
-(defun get-alist (key alist)
-  (cdr (assoc key alist :test #'equal)))
+(defpackage yegortimoshenko.kusaka/chatbots.cleverbot
+  (:documentation "Reverse-engineered Cleverbot client.")
+  (:export #:client)
+  (:use #:yegortimoshenko.kusaka/chatbots
+   	#:yegortimoshenko.kusaka/macros
+	#:yegortimoshenko.kusaka/walk
+        #:alexandria #:cl #:parse-js))
 
-(defmacro http-request* (url &rest options)
-  `(drakma:http-request ,url ,@options
-		        :external-format-out :utf-8
-		        :url-encoder #'(lambda (s e) (quri:url-encode s :encoding e))
-		        :user-agent :explorer))
+(defpackage yegortimoshenko.kusaka/chatbots.cleverbot-api
+  (:documentation "Cleverbot API client, see https://www.cleverbot.com/api/")
+  (:export #:client)
+  (:use #:yegortimoshenko.kusaka/chatbots
+	#:yegortimoshenko.kusaka/macros
+	#:alexandria #:cl))
 
-(defgeneric say (client &optional phrase))
+(defpackage yegortimoshenko.kusaka/chatbots.mitsuku
+  (:documentation "Mitsuku client (powered by Pandorabots), see http://www.mitsuku.com")
+  (:export #:client)
+  (:use #:yegortimoshenko.kusaka/chatbots #:cl))
 
-(defun repeatedly (fun n val)
-  (if (zerop n)
-      val
-      (funcall fun (repeatedly fun (1- n) val))))
+(defpackage yegortimoshenko.kusaka/chatbots.pandorabots
+  (:documentation "Reverse-engineered generic Pandorabots client.")
+  (:export #:client)
+  (:use #:yegortimoshenko.kusaka/chatbots
+	#:yegortimoshenko.kusaka/macros
+	#:alexandria #:cl))
 
-(defun startp (x y)
-  (if (and (listp x) (listp y))
-      (loop for p in (mapcar #'equal x y) always p)
-      (equal x y)))
+(defpackage yegortimoshenko.kusaka/chatbots.program-o
+  (:documentation "Program-O APIv2 client, see http://www.program-o.com/chatbotapi")
+  (:export #:client)
+  (:use #:yegortimoshenko.kusaka/chatbots
+	#:yegortimoshenko.kusaka/macros
+	#:alexandria #:cl))
 
-(defun traverse (keys tree)
-  (when (consp tree)
-    (if (loop for n below (length keys) always
-	     (startp (nth n keys)
-		     (car (repeatedly #'cdr n tree))))
-	tree
-	(or (traverse keys (car tree))
-	    (traverse keys (cdr tree))))))
+(defpackage yegortimoshenko.kusaka/chatbots.santabot
+  (:documentation "Santabot client, see http://www.santabot.com")
+  (:export #:client)
+  (:use #:yegortimoshenko.kusaka/chatbots
+	#:yegortimoshenko.kusaka/macros
+	#:alexandria #:cl))

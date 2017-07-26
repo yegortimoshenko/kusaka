@@ -1,48 +1,41 @@
-(in-package #:kusaka)
+(in-package #:yegortimoshenko.kusaka/omegle)
 
-(defparameter *omegle-servers*
-  (loop for n from 1 to 16 collect (format nil "front~d.omegle.com" n)))
+(defparameter *servers*
+  (loop for n from 1 to 32 collect (format nil "front~d.omegle.com" n)))
 
 (defun char-range (from to)
   (loop for n from (char-code from) to (char-code to) collect (code-char n)))
 
-(defparameter *omegle-randid-alphabet*
-  (append (char-range #\0 #\9)
+(defparameter *randid-alphabet*
+  (append (char-range #\2 #\9)
 	  (char-range #\A #\Z)))
 
 (defun random-string (alphabet length)
   (concatenate 'string (loop repeat length collect (random-elt alphabet))))
 
-(defstruct omegle-client id server)
+(defstruct client id server)
 
-(defun omegle-connect (&optional topics)
-  (let ((randid (random-string *omegle-randid-alphabet* 8))
-	(server (random-elt *omegle-servers*)))
-    (multiple-value-bind (body status)
-	(http-request* (concatenate 'string "http://" server "/start")
-		       :parameters `(("randid" . ,randid)
-				     ("topics" . ,(to-json (cons randid topics)))))
-      (if (= status 200)
-	  (make-omegle-client :id (string-trim '(#\") (octets-to-string body))
-			      :server server)))))
+(defun connect (&optional topics)
+  (let* ((params `(("rcs" . "1")
+		   ("randid" . ,(random-string *randid-alphabet* 8))
+		   ("topics" . ,(jonathan:to-json topics))
+		   ("spid" . "")))
+	 (server (random-elt *servers*))
+	 (endpoint (format nil "http://~A/start" server))
+	 (response (http-request endpoint :parameters params)))
+    (make-client :id (string-trim '(#\") (flexi-streams:octets-to-string response)) :server server)))
 
-(defparameter *omegle-actions*
-  '((omegle-disconnect "/disconnect")
-    (omegle-poll-events "/events")
-    (omegle-send-message "/send" (|msg|))
-    (omegle-solve-captcha "/recaptcha" (|challenge| |response|))
-    (omegle-start-typing "/typing")))
+(defparameter *actions*
+  '(:disconnect    ("/disconnect")
+    :poll-events   ("/events")
+    :send-message  ("/send" . ("msg"))
+    :solve-captcha ("/recaptcha" . ("challenge" "response"))
+    :start-typing  ("/typing")))
 
-(defmacro omegle-defaction (name path &optional args)
-  `(defun ,name (client ,@args)
-     (multiple-value-bind (body status)
-	 (http-request* (concatenate 'string "http://" (omegle-client-server client) ,path)
-		        :method :post
-		        :parameters `(("id" . ,(omegle-client-id client))
-				      ,,@(mapcar (lambda (s) `(cons ,(symbol-name s) ,s)) args)))
-       (if (= status 200)
-	   (if (stringp body)
-	       (identity t)
-	       (parse (octets-to-string body :external-format :utf-8)))))))
-
-(dolist (a *omegle-actions*) (eval `(omegle-defaction ,@a)))
+(defun request (client type &rest args)
+  (let* ((action (getf *actions* type))
+	 (params (acons "id" (client-id client) (mapcar #'cons (cdr action) args)))
+	 (endpoint (concatenate 'string "http://" (client-server client) (car action)))
+	 (response (drakma:http-request endpoint :method :post :parameters params)))
+    (if (not (stringp response))
+	(jonathan:parse (flexi-streams:octets-to-string response :external-format :utf-8)))))

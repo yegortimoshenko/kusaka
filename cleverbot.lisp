@@ -3,13 +3,12 @@
 (defparameter *cleverbot-uri* "http://www.cleverbot.com")
 
 (defmacro cr (path list)
-  (let ((counterparts '(#\A car #\D cdr)))
-    (reduce #'(lambda (form char) (cons (getf counterparts char) (list form)))
-	    (nreverse (coerce (symbol-name path) 'list)) :initial-value list)))
+  (reduce #'(lambda (form char) (cons (getf '(#\A car #\D cdr) char) (list form)))
+	  (nreverse (coerce (symbol-name path) 'list)) :initial-value list))
 
 (defun cleverbot-secret ()
   (let* ((endpoint (concatenate 'string *cleverbot-uri* "/extras/conversation-social-min.js"))
-	 (response (parse-js (octets-to-string (http-request* endpoint)))))
+	 (response (parse-js (octets-to-string (http-request endpoint)))))
     `(:query ,(caddr (traverse '("ep" :string) response))
       :stops ,(>> response
 		  (traverse '(:assign :+ (:name "d") (:call (:name "md5"))))
@@ -40,9 +39,9 @@
 			 ,@(loop for i below (length log) collect
 			     (cons (format nil "vText~d" (+ 2 i)) (nth i log)))))
 	       (digest (md5 (apply #'subseq (url-encode-params params) (getf secret :stops)))))
-	  (http-request* (concatenate 'string *cleverbot-uri* "/webservicemin?" (getf secret :query))
-			 :cookie-jar cookie-jar :method :post
-			 :parameters (append params `(("icognocheck" . ,digest)))))
+	  (http-request (concatenate 'string *cleverbot-uri* "/webservicemin?" (getf secret :query))
+		        :cookie-jar cookie-jar :method :post
+			:parameters (append params `(("icognocheck" . ,digest)))))
       (declare (ignore body status))
       (when-let* ((reply (get-alist :CBOUTPUT headers))
 		  (reply (url-decode reply)))
@@ -60,6 +59,6 @@
 			  ("input" . ,phrase)
 			  ("key" . ,token)))
 		(endpoint (concatenate 'string *cleverbot-uri* "/getreply"))
-		(response (parse-json (http-request* endpoint :parameters params))))
+		(response (parse-json (http-request endpoint :parameters params))))
       (setf state (getf response :|cs|))
       (getf response :|output|))))

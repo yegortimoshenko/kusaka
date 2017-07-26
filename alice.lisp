@@ -11,7 +11,7 @@
 		     ("custid" . ,customer-id)
 		     ("input" . ,phrase)))
 	   (endpoint (concatenate 'string uri "/pandora/talk-xml"))
-	   (response (parse-xml (http-request* endpoint :parameters params))))
+	   (response (parse-xml (http-request endpoint :parameters params))))
       (setf customer-id (attribute (first-element response) "custid"))
       (if-let (that (first (get-elements-by-tag-name response "that")))
 	(text that)))))

@@ -1,7 +1,7 @@
 (defsystem #:kusaka
-  :depends-on (#:alexandria #:net.didierverna.clon #:drakma #:flexi-streams
-	       #:ironclad #:jonathan #:parse-js #:plump #:split-sequence #:quri)
+  :depends-on (#:alexandria #:drakma #:flexi-streams #:ironclad
+	       #:jonathan #:parse-js #:plump #:split-sequence #:quri)
   :components ((:file "package")
+	       (:file "alice")
                (:file "cleverbot")
-	       (:file "deathbycaptcha")
 	       (:file "omegle")))
